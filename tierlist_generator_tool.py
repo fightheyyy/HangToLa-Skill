@@ -10,7 +10,6 @@ if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
-
 from base_tool import BaseTool
 from typing import Dict, Any, List
 from PIL import Image, ImageDraw, ImageFont
@@ -61,7 +60,7 @@ class TierListGenerator(BaseTool):
     """Tier List 图片生成工具"""
 
     tool_name = "tierlist_generator"
-    tool_description = "把夯到拉评价结果渲染到 tier list 模板图上，生成一张排位图片。"
+    tool_description = "把评价对象名称渲染到 tier list 模板图对应的总评等级行上，生成一张排位图片。"
     tool_parameters = {
         "type": "object",
         "properties": {
@@ -71,7 +70,7 @@ class TierListGenerator(BaseTool):
             },
             "tiers": {
                 "type": "object",
-                "description": "各等级对应的维度列表。key 为等级名（夯/顶级/人上人/NPC/拉完了），value 为该等级下的维度名数组",
+                "description": "各等级对应的评价对象名称列表。key 为等级名（夯/顶级/人上人/NPC/拉完了），value 为该等级下的对象名称数组",
                 "properties": {
                     "夯": {"type": "array", "items": {"type": "string"}},
                     "顶级": {"type": "array", "items": {"type": "string"}},

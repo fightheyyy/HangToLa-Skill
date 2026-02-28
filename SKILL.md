@@ -59,7 +59,7 @@ python skills/hang-to-la-rating/github_repo_fetcher_tool.py '{"repo_url": "<GitH
 
 **tierlist_generator**（生成排位图）：
 ```bash
-python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"夯": ["维度A"], "顶级": ["维度B", "维度C"], "人上人": [], "NPC": ["维度D"], "拉完了": ["维度E"]}, "title": "评价对象名"}'
+python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"顶级": ["Paper-Skill"]}, "title": "Paper-Skill"}'
 ```
 
 返回 `file_path` 和 `file_name`，拿到后立即用 `send_file` 发送给用户。
@@ -105,16 +105,19 @@ python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"夯": ["
 ### Step 5：生成 Tier List 排位图
 
 评价完成后：
-1. 调用 `tierlist_generator`，把各维度按评级分组传入 `tiers` 参数
+1. 调用 `tierlist_generator`，把评价对象的名称放到总评等级对应的行。`tiers` 参数中，只需要在总评等级下放评价对象名称，其他等级留空或不传。
 2. 拿到返回的 `file_path` 和 `file_name`
 3. 立即调用 `send_file` 把图片发给用户
 
-示例调用参数：
+示例：如果评价 "Paper-Skill"，总评是"顶级"，则调用参数为：
 ```json
-{"tiers": {"夯": ["问题意识"], "顶级": ["架构设计", "代码质量"], "NPC": ["文档"], "拉完了": ["测试"]}}
+{"tiers": {"顶级": ["Paper-Skill"]}, "title": "Paper-Skill"}
 ```
 
-空档不传或传空数组。
+如果一次评价多个对象，把每个对象名称放到各自总评等级对应的行：
+```json
+{"tiers": {"夯": ["项目A"], "顶级": ["项目B", "项目C"], "拉完了": ["项目D"]}, "title": "批量锐评"}
+```
 
 ## 输出格式
 

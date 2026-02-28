@@ -45,6 +45,8 @@ max-turns: 15
 | 工具 | 用途 | 何时调用 |
 |------|------|----------|
 | `github_repo_fetcher` | 抓取 GitHub 仓库目录树和关键文件内容 | 评价对象是 GitHub 仓库 URL 时 |
+| `tierlist_generator` | 把评价结果渲染到 tier list 模板图上 | 评价完成后生成排位图 |
+| `send_file` | 发送文件/图片给用户 | 生成图片后发送 |
 | `web_fetch` | 获取普通网页内容 | 评价对象是非 GitHub 的 URL 时 |
 | `read_file` | 读取本地文件 | 评价对象是本地文件路径时 |
 
@@ -55,10 +57,12 @@ max-turns: 15
 python skills/hang-to-la-rating/github_repo_fetcher_tool.py '{"repo_url": "<GitHub仓库URL>", "max_files": 20}'
 ```
 
-脚本接收 JSON 字符串作为参数，返回 JSON 结果到 stdout。返回内容包含：
-- `tree_overview`：仓库目录树概览
-- `files`：关键文件的完整内容（SKILL.md、README.md、代码文件等，按重要性排序）
-- `fetched_count`：实际抓取的文件数
+**tierlist_generator**（生成排位图）：
+```bash
+python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"夯": ["维度A"], "顶级": ["维度B", "维度C"], "人上人": [], "NPC": ["维度D"], "拉完了": ["维度E"]}, "title": "评价对象名"}'
+```
+
+返回 `file_path` 和 `file_name`，拿到后立即用 `send_file` 发送给用户。
 
 ## 执行流程
 
@@ -98,23 +102,23 @@ python skills/hang-to-la-rating/github_repo_fetcher_tool.py '{"repo_url": "<GitH
 
 总结那句话要有记忆点，最好能概括核心矛盾或最大亮点/槽点。
 
-### Step 5：Tier List 排位总览
+### Step 5：生成 Tier List 排位图
 
-评价完成后，用文字排位图总结各维度落在哪个档，格式如下：
+评价完成后：
+1. 调用 `tierlist_generator`，把各维度按评级分组传入 `tiers` 参数
+2. 拿到返回的 `file_path` 和 `file_name`
+3. 立即调用 `send_file` 把图片发给用户
 
+示例调用参数：
+```json
+{"tiers": {"夯": ["问题意识"], "顶级": ["架构设计", "代码质量"], "NPC": ["文档"], "拉完了": ["测试"]}}
 ```
-🔴 夯：[落在此档的维度]
-🟠 顶级：[落在此档的维度]
-🟡 人上人：[落在此档的维度]
-⬜ NPC：[落在此档的维度]
-🩶 拉完了：[落在此档的维度]
-```
 
-空档写"—"。这一步是锦上添花，让评价结果一目了然。
+空档不传或传空数组。
 
 ## 输出格式
 
-直接用自然语言输出，不要用表格。每个维度一小段，最后一个总评 + tier list 排位图。整体控制在 300-600 字（不含排位图），不要写太长。
+直接用自然语言输出，不要用表格。每个维度一小段，最后一个总评。文字评价控制在 300-600 字。评价完成后生成并发送 tier list 排位图。
 
 示例风格（仅供参考语气，不要照抄）：
 

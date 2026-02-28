@@ -44,6 +44,7 @@ max-turns: 15
 
 | 工具 | 用途 | 何时调用 |
 |------|------|----------|
+| `trending_skills_finder` | 搜索 GitHub 上最近飙升的 Skill 仓库 | 用户要求批量锐评热门 skill 时 |
 | `github_repo_fetcher` | 抓取 GitHub 仓库目录树和关键文件内容 | 评价对象是 GitHub 仓库 URL 时 |
 | `tierlist_generator` | 把评价结果渲染到 tier list 模板图上 | 评价完成后生成排位图 |
 | `send_file` | 发送文件/图片给用户 | 生成图片后发送 |
@@ -51,6 +52,11 @@ max-turns: 15
 | `read_file` | 读取本地文件 | 评价对象是本地文件路径时 |
 
 ## 脚本调用方式
+
+**trending_skills_finder**（搜索热门 Skill）：
+```bash
+python skills/hang-to-la-rating/trending_skills_finder_tool.py '{"max_results": 10, "sort_by": "hot", "days": 30}'
+```
 
 **github_repo_fetcher**（抓取 GitHub 仓库）：
 ```bash
@@ -68,6 +74,7 @@ python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"顶级":
 
 ### Step 1：理解评价对象
 
+- **如果用户要求批量锐评热门 skill**：调用 `trending_skills_finder` 搜索 GitHub 上最近飙升的 skill 仓库，拿到列表后进入批量锐评流程（见下方 Step 6）
 - **如果是 GitHub 仓库 URL**：调用 `github_repo_fetcher` 抓取仓库内容，一次性拿到目录结构和关键文件
 - 如果是其他 URL，用 `web_fetch` 获取内容
 - 如果是文件路径，用 `read_file` 读取
@@ -118,6 +125,19 @@ python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"顶级":
 ```json
 {"tiers": {"夯": ["项目A"], "顶级": ["项目B", "项目C"], "拉完了": ["项目D"]}, "title": "批量锐评"}
 ```
+
+### Step 6：批量锐评热门 Skill（可选流程）
+
+当用户要求"锐评最近飙升的 skill"或类似批量评价请求时，执行以下流程：
+
+1. 调用 `trending_skills_finder`，获取最近热门的 skill 仓库列表
+2. 从返回结果中选取 top 5-10 个 skill（数量可根据用户要求调整）
+3. 对每个 skill 逐个调用 `github_repo_fetcher` 抓取内容
+4. 对每个 skill 快速锐评：每个 skill 选 3-4 个核心维度评价，给出总评等级 + 一句话总结
+5. 所有 skill 评完后，调用 `tierlist_generator`，把所有 skill 名称按各自总评等级放到一张图上
+6. 调用 `send_file` 发送排位图
+
+批量锐评时每个 skill 的文字评价可以精简（100-200 字），重点是总评等级要准确。最后的 tier list 排位图才是重头戏。
 
 ## 输出格式
 

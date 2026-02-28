@@ -98,11 +98,9 @@ python skills/hang-to-la-rating/github_repo_fetcher_tool.py '{"repo_url": "<GitH
 
 总结那句话要有记忆点，最好能概括核心矛盾或最大亮点/槽点。
 
-### Step 5：Tier List 视觉化排位
+### Step 5：Tier List 排位总览
 
-评价完成后，用 `read_file` 读取 `skills/hang-to-la-rating/image.png` 这张 tier list 模板图，展示给用户。
-
-然后用文字描述各维度在 tier list 上的排位，格式如下：
+评价完成后，用文字排位图总结各维度落在哪个档，格式如下：
 
 ```
 🔴 夯：[落在此档的维度]

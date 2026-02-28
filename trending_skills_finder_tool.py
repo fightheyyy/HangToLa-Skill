@@ -92,56 +92,93 @@ class TrendingSkillsFinder(BaseTool):
     # ── GitHub 搜索 ──
 
     def _search_skill_repos(self, headers: Dict, days: int) -> List[Dict]:
-        """通过 GitHub Code Search 搜索包含 SKILL.md 的仓库"""
-        since = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
+        """搜索包含 SKILL.md 的仓库，双策略：Code Search + Repo Search"""
         repos_seen = {}
 
-        # 搜索策略：filename:SKILL.md，翻两页拿足够多的结果
+        # 策略 1：Repository Search（支持 pushed 过滤）
+        self._search_via_repos(headers, days, repos_seen)
+
+        # 策略 2：Code Search（更精准，但不支持 pushed 过滤）
+        if len(repos_seen) < 20:
+            self._search_via_code(headers, repos_seen)
+
+        return list(repos_seen.values())
+
+    def _search_via_repos(self, headers: Dict, days: int, repos_seen: Dict):
+        """通过 Repository Search 搜索"""
+        since = (datetime.now(tz=None) - timedelta(days=days)).strftime('%Y-%m-%d')
         for page in range(1, 3):
-            url = f"{API_BASE}/search/code"
+            url = f"{API_BASE}/search/repositories"
             params = {
-                'q': f'filename:SKILL.md pushed:>{since}',
-                'per_page': 50,
+                'q': f'SKILL.md in:path pushed:>{since}',
+                'sort': 'updated',
+                'order': 'desc',
+                'per_page': 30,
                 'page': page,
             }
             try:
                 resp = requests.get(url, headers=headers, params=params, timeout=15)
-                if resp.status_code == 403:
-                    # 限流，等一下重试
-                    time.sleep(2)
-                    resp = requests.get(url, headers=headers, params=params, timeout=15)
                 if resp.status_code != 200:
                     break
-
                 data = resp.json()
                 for item in data.get('items', []):
-                    repo = item.get('repository', {})
-                    full_name = repo.get('full_name', '')
-                    if full_name and full_name not in repos_seen:
-                        repos_seen[full_name] = {
-                            'full_name': full_name,
-                            'url': f"https://github.com/{full_name}",
-                            'skill_md_path': item.get('path', 'SKILL.md'),
+                    fn = item.get('full_name', '')
+                    if fn and fn not in repos_seen:
+                        repos_seen[fn] = {
+                            'full_name': fn,
+                            'url': item.get('html_url', f"https://github.com/{fn}"),
+                            'skill_md_path': 'SKILL.md',
+                            'stars': item.get('stargazers_count', 0),
+                            'description': item.get('description', ''),
+                            'language': item.get('language', ''),
+                            'pushed_at': item.get('pushed_at', ''),
+                            'created_at': item.get('created_at', ''),
+                            'forks': item.get('forks_count', 0),
+                            'owner': item.get('owner', {}).get('login', ''),
+                            'enriched': True,
                         }
-
-                # 结果不够一页，不用翻了
-                if data.get('total_count', 0) <= page * 50:
+                if data.get('total_count', 0) <= page * 30:
                     break
-
-                # Code Search 限流比较严，间隔一下
                 time.sleep(1)
-
             except Exception:
                 break
 
-        return list(repos_seen.values())
+    def _search_via_code(self, headers: Dict, repos_seen: Dict):
+        """通过 Code Search 搜索（需要认证效果更好）"""
+        url = f"{API_BASE}/search/code"
+        params = {
+            'q': 'filename:SKILL.md',
+            'per_page': 50,
+            'page': 1,
+        }
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=15)
+            if resp.status_code != 200:
+                return
+            data = resp.json()
+            for item in data.get('items', []):
+                repo = item.get('repository', {})
+                fn = repo.get('full_name', '')
+                if fn and fn not in repos_seen:
+                    repos_seen[fn] = {
+                        'full_name': fn,
+                        'url': f"https://github.com/{fn}",
+                        'skill_md_path': item.get('path', 'SKILL.md'),
+                    }
+        except Exception:
+            pass
 
     # ── 仓库详情补充 ──
 
     def _enrich_repos(self, repos: List[Dict], headers: Dict) -> List[Dict]:
-        """获取每个仓库的 star、描述、最近更新时间等"""
+        """补充仓库元数据（跳过已从搜索结果中获取过的）"""
         enriched = []
         for repo in repos:
+            # 已经从 repo search 拿到元数据的，直接加入
+            if repo.get('enriched'):
+                enriched.append(repo)
+                continue
+            # 只对 code search 来的结果调 API 补充
             full_name = repo['full_name']
             url = f"{API_BASE}/repos/{full_name}"
             try:
@@ -188,7 +225,7 @@ class TrendingSkillsFinder(BaseTool):
 
         else:
             # hot：综合热度 = stars + 新鲜度加成
-            now = datetime.utcnow()
+            now = datetime.now()
             def hot_score(repo):
                 stars = repo.get('stars', 0)
                 pushed = repo.get('pushed_at', '')

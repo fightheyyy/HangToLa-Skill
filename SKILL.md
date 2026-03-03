@@ -64,8 +64,17 @@ python skills/hang-to-la-rating/github_repo_fetcher_tool.py '{"repo_url": "<GitH
 ```
 
 **tierlist_generator**（生成排位图）：
+
+标签支持两种格式：纯字符串（默认深色总评标签）或 `{"name": "xxx", "type": "dim|summary"}` 对象（dim=蓝色维度标签，summary=深色总评标签）。
+
+单个 skill 锐评（维度+总评混排）：
 ```bash
-python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"顶级": ["Paper-Skill"]}, "title": "Paper-Skill"}'
+python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"夯": [{"name": "问题意识", "type": "dim"}], "顶级": [{"name": "设计思路", "type": "dim"}, {"name": "code-review-expert", "type": "summary"}], "NPC": [{"name": "工程化", "type": "dim"}]}, "title": "code-review-expert"}'
+```
+
+多个 skill 批量锐评（纯名字，向后兼容）：
+```bash
+python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"夯": ["项目A"], "顶级": ["项目B", "项目C"], "拉完了": ["项目D"]}, "title": "批量锐评"}'
 ```
 
 返回 `file_path` 和 `file_name`，拿到后立即用 `send_file` 发送给用户。
@@ -111,20 +120,29 @@ python skills/hang-to-la-rating/tierlist_generator_tool.py '{"tiers": {"顶级":
 
 ### Step 5：生成 Tier List 排位图
 
-评价完成后：
-1. 调用 `tierlist_generator`，把评价对象的名称放到总评等级对应的行。`tiers` 参数中，只需要在总评等级下放评价对象名称，其他等级留空或不传。
-2. 拿到返回的 `file_path` 和 `file_name`
-3. 立即调用 `send_file` 把图片发给用户
+评价完成后，根据评价场景选择不同的图片生成方式：
 
-示例：如果评价 "Paper-Skill"，总评是"顶级"，则调用参数为：
+**单个对象锐评：** 把每个维度名称作为 `{"name": "维度名", "type": "dim"}` 蓝色标签放到对应等级行，总评作为 `{"name": "对象名", "type": "summary"}` 深色标签放到总评等级行。这样一张图就能看到各维度的分布。
+
+示例：评价 "code-review-expert"，问题意识=夯，设计思路=顶级，工程化=NPC，总评=人上人：
 ```json
-{"tiers": {"顶级": ["Paper-Skill"]}, "title": "Paper-Skill"}
+{
+  "tiers": {
+    "夯": [{"name": "问题意识", "type": "dim"}],
+    "顶级": [{"name": "设计思路", "type": "dim"}],
+    "人上人": [{"name": "code-review-expert", "type": "summary"}],
+    "NPC": [{"name": "工程化", "type": "dim"}]
+  },
+  "title": "code-review-expert"
+}
 ```
 
-如果一次评价多个对象，把每个对象名称放到各自总评等级对应的行：
+**多个对象批量锐评：** 跟之前一样，把每个对象名称（纯字符串）放到各自总评等级行：
 ```json
 {"tiers": {"夯": ["项目A"], "顶级": ["项目B", "项目C"], "拉完了": ["项目D"]}, "title": "批量锐评"}
 ```
+
+生成后立即用 `send_file` 把图片发给用户。
 
 ### Step 6：批量锐评热门 Skill（可选流程）
 

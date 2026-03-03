@@ -11,6 +11,8 @@ import os
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools', 'global'))
+
 from base_tool import BaseTool
 from typing import Dict, Any, List, Optional, Tuple
 import requests
@@ -18,6 +20,8 @@ import re
 import time
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 # GitHub Raw 内容基础 URL
 RAW_BASE = "https://raw.githubusercontent.com"
 API_BASE = "https://api.github.com"
@@ -44,6 +48,8 @@ IGNORE_PATTERNS = [
 MAX_FILE_CHARS = 15000
 # 总输出最大字符数
 MAX_TOTAL_CHARS = 80000
+
+
 class GitHubRepoFetcher(BaseTool):
     """GitHub 仓库内容抓取工具"""
 
@@ -301,6 +307,8 @@ class GitHubRepoFetcher(BaseTool):
             lines.append(f"  ... (共 {len(tree)} 个文件，已截断)")
 
         return '\n'.join(lines)
+
+
 if __name__ == '__main__':
     tool = GitHubRepoFetcher()
     tool.run()
